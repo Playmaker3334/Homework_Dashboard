@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Realtime Global Earthquakes • USGS Feed</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Realtime Earthquakes • USGS/EMSC FDSN API (1-s playback)</title>
 
-<!-- ── DARK THEME ─────────────────────────────────────────────── -->
+<!-- ── DARK THEME ───────────────────────────────────────────── -->
 <style>
 :root{
   --bg:#0e0e11;--panel:#1a1a1f;--text:#e6e6e9;
-  --accent:#9b5de5;--grid:rgba(255,255,255,.07);--font:"Inter",system-ui,sans-serif
+  --accent:#9b5de5;--grid:rgba(255,255,255,.07);
+  --font:"Inter",system-ui,sans-serif
 }
 @media(prefers-color-scheme:light){
   :root{--bg:#fafafa;--panel:#fff;--text:#1a1a1f;--grid:rgba(0,0,0,.08)}
@@ -20,124 +21,161 @@ body{
   display:flex;align-items:center;justify-content:center;
   background:var(--bg);color:var(--text);font-family:var(--font)
 }
-#chart-wrapper{
+#box{
   width:95%;max-width:1100px;background:var(--panel);
-  padding:1.8rem 2rem;border-radius:18px;
+  padding:1.9rem 2.1rem;border-radius:18px;
   box-shadow:0 0 45px rgba(0,0,0,.45)
 }
 h1{font-size:1.35rem;font-weight:600;margin-bottom:.4rem}
-p#sub{font-size:.85rem;opacity:.7;margin-bottom:1rem}
+#sub{font-size:.85rem;opacity:.7;margin-bottom:1rem}
 canvas{width:100%!important;height:65vh!important}
-#updated{font-size:.75rem;opacity:.6;margin-top:.8rem;text-align:right}
+#stamp{font-size:.75rem;opacity:.6;margin-top:.8rem;text-align:right}
+#details{
+  margin-top:1rem;font-size:.85rem;line-height:1.4;
+  background:rgba(255,255,255,.05);padding:.8rem 1rem;border-radius:12px
+}
+a{color:var(--accent);text-decoration:none}
 </style>
 </head>
 <body>
-<div id="chart-wrapper">
-  <h1>🌍 Global Earthquakes – Magnitude vs Time</h1>
-  <p id="sub">Datos de <a href="https://earthquake.usgs.gov/" target="_blank" style="color:var(--accent)">USGS</a> (se actualiza tan pronto haya un sismo nuevo)</p>
-  <canvas id="eq-chart"></canvas>
-  <div id="updated">Última actualización: —</div>
+<div id="box">
+  <h1>🌍 Global Earthquakes – Magnitude vs UTC Time</h1>
+  <p id="sub">
+    Datos en vivo de <a href="https://earthquake.usgs.gov/" target="_blank">USGS FDSN API</a>.  
+    Los eventos de las últimas 24 h se “sueltan” a razón de 1 punto / s para animación fluida.
+  </p>
+  <canvas id="chart"></canvas>
+  <div id="stamp">—</div>
+  <div id="details">Haz clic sobre un punto para ver detalles…</div>
 </div>
 
-<!-- ── LIBRERÍAS ─────────────────────────────────────────────── -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
 
-<!-- ── JS LÓGICA ──────────────────────────────────────────────── -->
 <script>
-const USGS_URL  = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson';
-const POLL_MS   = 1000;         // 1 segundo
-const MAX_PTS   = 120;          // máx. 120 eventos (~1 h)
-const seenIds   = new Set();
-const updatedEl = document.getElementById('updated');
+/* ═════ CONFIG ════════════════════════════════════════════════ */
+const FETCH_MS   = 60_000;   // refresco del feed (1 min)
+const TICK_MS    = 1_000;    // playback (1 evento / s)
+const MAX_POINTS = 300;      // visibles (~5 min)
+const queue      = [];       // cola de eventos
+const seen       = new Set();// ids ya graficados
+const $stamp     = document.getElementById('stamp');
+const $details   = document.getElementById('details');
+const css        = v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
-// Colores desde CSS custom properties
-const getVar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+/* ═════ BUILD FDSN URL (24 h sliding window) ══════════════════ */
+function buildURL(){
+  const startISO = new Date(Date.now()-24*3600*1000).toISOString();
+  return 'https://earthquake.usgs.gov/fdsnws/event/1/query'
+       + '?format=geojson'
+       + '&starttime=' + startISO
+       + '&minmagnitude=0'
+       + '&orderby=time'
+       + '&limit=20000';
+}
 
-// Chart setup
-const ctx = document.getElementById('eq-chart').getContext('2d');
-const data = {
-  labels: [],
-  datasets:[{
-    label:'Magnitude',
-    data:[],
-    borderColor:getVar('--accent'),
-    backgroundColor:'rgba(0,0,0,0)',
-    pointRadius:3,
-    pointBackgroundColor:getVar('--accent'),
-    borderWidth:2,
-    tension:.25
-  }]
-};
+/* ═════ CHART INIT ════════════════════════════════════════════ */
+const ctx = document.getElementById('chart').getContext('2d');
+const data = { labels: [], datasets:[{
+  label:'Magnitude',
+  data:[],
+  borderColor:css('--accent'),
+  backgroundColor:'rgba(0,0,0,0)',
+  pointRadius:3,
+  pointBackgroundColor:css('--accent'),
+  borderWidth:2,
+  tension:.25
+}]};
 
 const chart = new Chart(ctx,{
-  type:'line',
-  data,
+  type:'line',data,
   options:{
     scales:{
-      x:{
-        type:'timeseries',
-        time:{displayFormats:{second:'HH:mm:ss'}},
-        grid:{color:getVar('--grid')},
-        title:{display:true,text:'UTC Time'}
-      },
-      y:{
-        beginAtZero:true,
-        grid:{color:getVar('--grid')},
-        title:{display:true,text:'Magnitude'}
-      }
+      x:{type:'timeseries',
+         time:{displayFormats:{second:'HH:mm:ss'}},
+         grid:{color:css('--grid')},title:{display:true,text:'UTC'}},
+      y:{beginAtZero:true,
+         grid:{color:css('--grid')},title:{display:true,text:'Magnitude'}}
     },
     animation:{duration:0},
     plugins:{
       legend:{display:false},
       tooltip:{
         backgroundColor:'rgba(30,30,35,.92)',
-        borderColor:getVar('--accent'),borderWidth:1,
+        borderColor:css('--accent'),borderWidth:1,
         callbacks:{
-          title: ctx => new Date(ctx[0].parsed.x).toUTCString(),
-          label: ctx => `Mag ${ctx.parsed.y}`
+          title:c=>new Date(c[0].parsed.x).toUTCString(),
+          label:c=>`Mag ${c.parsed.y}`
         }
       }
     },
-    responsive:true,maintainAspectRatio:false
+    responsive:true,maintainAspectRatio:false,
+    onClick:(evt)=>{
+      const p = chart.getElementsAtEventForMode(evt,'nearest',{intersect:true},true)[0];
+      if(!p) return;
+      const idx = p.index;
+      const t   = data.labels[idx];
+      const m   = data.datasets[0].data[idx];
+      const ev  = data.__meta[idx];          // guardamos detalles aquí
+      $details.innerHTML =
+        `<strong>${ev.place}</strong><br>
+         Magnitude: ${m}<br>
+         Depth: ${ev.depth.toFixed(1)} km<br>
+         Time: ${t.toUTCString()}<br>
+         Coordinates: [${ev.lat.toFixed(2)}, ${ev.lon.toFixed(2)}]`;
+    }
   }
 });
 
-// Actualiza gráfico con un nuevo sismo
-function addPoint({id,time,mag}){
-  if(seenIds.has(id)) return;
-  seenIds.add(id);
+/* ═════ DATA INGEST ═══════════════════════════════════════════ */
+function enqueue(features){
+  features
+    .sort((a,b)=>a.properties.time-b.properties.time)
+    .forEach(f=>{
+      if(seen.has(f.id)) return;
+      seen.add(f.id);
+      queue.push({
+        time: new Date(f.properties.time),
+        mag:  f.properties.mag,
+        id:   f.id,
+        place:f.properties.place||'-',
+        depth:f.geometry.coordinates[2],
+        lon:  f.geometry.coordinates[0],
+        lat:  f.geometry.coordinates[1]
+      });
+    });
+}
 
-  data.labels.push(time);
-  data.datasets[0].data.push(mag);
+async function fetchFeed(){
+  try{
+    const res = await fetch(buildURL());
+    const geo = await res.json();
+    enqueue(geo.features);
+    $stamp.textContent =
+      'Última sync: ' + new Date().toLocaleTimeString('es-MX',{hour12:false});
+  }catch(e){console.error(e)}
+}
 
-  if(data.labels.length>MAX_PTS){
+/* ═════ DRAW LOOP ═════════════════════════════════════════════ */
+function drawNext(){
+  if(!queue.length) return;
+  const ev = queue.shift();
+  data.labels.push(ev.time);
+  data.datasets[0].data.push(ev.mag);
+  (data.__meta||=[]).push(ev);             // guardamos detalle paralelo
+
+  if(data.labels.length>MAX_POINTS){
     data.labels.shift();
     data.datasets[0].data.shift();
+    data.__meta.shift();
   }
   chart.update();
 }
 
-// Fetch a USGS batch
-async function fetchQuakes(){
-  try{
-    const res  = await fetch(USGS_URL);
-    const geo  = await res.json();
-    geo.features.forEach(f=>{
-      addPoint({
-        id:  f.id,
-        time:new Date(f.properties.time),
-        mag: f.properties.mag
-      });
-    });
-    updatedEl.textContent = 'Última actualización: ' +
-        new Date().toLocaleTimeString('es-MX',{hour12:false});
-  }catch(err){console.error('Fetch error',err)}
-}
-
-// Arranque
-fetchQuakes();
-setInterval(fetchQuakes,POLL_MS);
+/* ═════ START ═════════════════════════════════════════════════ */
+fetchFeed();                              // primer llenado
+setInterval(fetchFeed, FETCH_MS);         // refill cada minuto
+setInterval(drawNext , TICK_MS );         // playback 1 s
 </script>
 </body>
 </html>
