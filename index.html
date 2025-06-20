@@ -401,6 +401,7 @@ nav {
   border-radius: 20px;
   padding: 2rem;
   position: relative;
+  height: 420px; /* Damos una altura fija al contenedor */
 }
 
 .chart-header {
@@ -443,7 +444,7 @@ nav {
   border: 1px solid var(--grid);
   border-radius: 20px;
   padding: 1.5rem;
-  height: 500px;
+  height: 420px; /* Igualamos la altura para que se vea simétrico */
   display: flex;
   flex-direction: column;
 }
@@ -644,11 +645,17 @@ nav {
   opacity: 1;
 }
 
-/* Canvas containers */
+/*
+  SOLUCIÓN: Se eliminó la regla CSS conflictiva para 'canvas'.
+  La librería Chart.js ahora puede manejar el tamaño de forma responsiva
+  sin interferencias.
+*/
+/*
 canvas {
   width: 100% !important;
   height: 100% !important;
 }
+*/
 
 /* Scrollbar */
 ::-webkit-scrollbar {
@@ -812,7 +819,7 @@ canvas {
               </div>
               <div class="legend-item">
                 <div class="legend-color" style="background: #ef4444"></div>
-                <span>&gt; 300 km</span>
+                <span>> 300 km</span>
               </div>
             </div>
           </div>
@@ -840,7 +847,8 @@ canvas {
             <button class="chart-btn">24H</button>
           </div>
         </div>
-        <canvas id="timeline-chart" height="300"></canvas>
+        <!-- SOLUCIÓN: Se eliminó el atributo height="300" para que el canvas sea responsivo -->
+        <canvas id="timeline-chart"></canvas>
       </div>
       
       <div class="activity-feed">
@@ -1308,7 +1316,7 @@ function addEventToFeed(event) {
   `;
   
   feed.insertBefore(item, feed.firstChild);
-  if (feed.children.length > 10) {
+  if (feed.children.length > 20) { // Aumenté un poco el límite de eventos en el feed
     feed.removeChild(feed.lastChild);
   }
 }
