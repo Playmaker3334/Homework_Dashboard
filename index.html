@@ -3,218 +3,335 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Earthquake Dashboard • Realtime Playback (1 s)</title>
+<title>Earthquake Intelligence Dashboard</title>
 
-<!-- ── DARK THEME ───────────────────────────────────────────── -->
+<!-- ========== THEME & RESET ================================= -->
 <style>
 :root{
-  --bg:#0e0e11;--panel:#1a1a1f;--text:#e6e6e9;
-  --accent:#9b5de5;--grid:rgba(255,255,255,.07);
-  --font:"Inter",system-ui,sans-serif
+  /* --- Palette --- */
+  --bg:#0b0d10;          /* page background                        */
+  --panel:#181c23;       /* card background                        */
+  --text:#e4e4e9;        /* main text                              */
+  --muted:#8d8d96;       /* muted / secondary text                 */
+  --accent:#a66bff;      /* accent purple                          */
+  --accent-light:#be8cff;/* lighter variant for fills              */
+  --grid:rgba(255,255,255,.06);
+  --font:"Inter",system-ui,sans-serif;
+  --radius:18px;
 }
 @media(prefers-color-scheme:light){
-  :root{--bg:#fafafa;--panel:#fff;--text:#1a1a1f;--grid:rgba(0,0,0,.08)}
+  :root{
+    --bg:#f3f4f7;--panel:#ffffff;--text:#1f1f23;--muted:#62626a;
+    --grid:rgba(0,0,0,.1);--accent:#7046ff;--accent-light:#8c68ff;
+  }
 }
-*{box-sizing:border-box;margin:0;padding:0}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{background:var(--bg);color:var(--text);font-family:var(--font)}
-#dashboard{
-  display:grid;grid-template-columns:2fr 1fr;grid-template-rows:auto 1fr;
-  gap:1.6rem;height:100vh;padding:1.6rem
+body{
+  background:var(--bg);color:var(--text);font-family:var(--font);
+  display:flex;flex-direction:column;min-height:100vh
+}
+a{color:var(--accent);text-decoration:none}
+button{
+  cursor:pointer;border:none;border-radius:var(--radius);
+  background:var(--accent);color:#fff;font:inherit;
+  padding:.45rem .95rem;font-size:.9rem
+}
+button:hover{opacity:.9}
+select{
+  background:var(--panel);color:var(--text);
+  border:1px solid var(--grid);border-radius:10px;
+  padding:.35rem .65rem;font-size:.9rem
+}
+
+/* ========== NAV ============================================ */
+#nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.1rem 1.6rem;background:var(--panel);
+  box-shadow:0 0 30px rgba(0,0,0,.35)
+}
+#nav h1{
+  font-size:1.15rem;font-weight:600;display:flex;gap:.55rem;align-items:center
+}
+#nav h1 span{font-size:.8rem;color:var(--muted)}
+
+/* ========== GRID LAYOUT ==================================== */
+#grid{
+  flex:1;display:grid;grid-template-columns:2fr 35%;
+  gap:2%;padding:1.6rem;max-width:1600px;margin:0 auto;width:100%
 }
 .section{
-  background:var(--panel);padding:1.5rem;border-radius:18px;
-  box-shadow:0 0 35px rgba(0,0,0,.4);overflow:hidden
+  background:var(--panel);border-radius:var(--radius);
+  padding:1.6rem 1.8rem;box-shadow:0 0 35px rgba(0,0,0,.45);
+  display:flex;flex-direction:column;min-height:0
 }
-#line-wrapper{grid-column:1/3}
-h1{font-size:1.35rem;font-weight:600;margin-bottom:.4rem}
-small{opacity:.7}
+h2{font-size:1.05rem;font-weight:600;margin-bottom:.85rem}
+
+/* KPI list */
+ul#kpi{list-style:none;font-size:.9rem;line-height:1.55}
+ul#kpi strong{color:var(--accent)}
+
+/* Live feed list */
+#feed{margin-top:1rem;font-size:.8rem;line-height:1.45;overflow-y:auto}
+#feed div{
+  margin-bottom:.45rem;border-left:3px solid var(--accent);
+  padding-left:.55rem;white-space:nowrap;text-overflow:ellipsis;overflow:hidden
+}
+
+/* ========== MODAL ========================================== */
+#modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);
+  display:none;align-items:center;justify-content:center;z-index:999
+}
+#modal .card{
+  background:var(--panel);border-radius:var(--radius);
+  width:92%;max-width:1100px;max-height:92vh;
+  padding:2rem;display:flex;flex-direction:column
+}
+#tabs{display:flex;gap:.7rem;margin-bottom:1rem}
+#tabs button{
+  background:var(--grid);border-radius:10px;
+  font-size:.85rem;padding:.4rem .85rem
+}
+#tabs .active{background:var(--accent)}
+#close{
+  align-self:flex-end;margin-bottom:1.2rem;
+  background:var(--grid);color:var(--text)
+}
 canvas{width:100%!important;height:100%!important}
-#stats ul{list-style:none;font-size:.95rem;line-height:1.5}
-#stats strong{color:var(--accent)}
-#details{margin-top:1rem;font-size:.9rem;line-height:1.4;
-  background:rgba(255,255,255,.05);padding:.8rem 1rem;border-radius:12px}
-#stamp{font-size:.75rem;opacity:.6;margin-top:.8rem;text-align:right}
-a{color:var(--accent);text-decoration:none}
+
+/* Responsive adjustments */
+@media(max-width:900px){
+  #grid{grid-template-columns:100%}
+  #nav{flex-wrap:wrap;gap:.7rem}
+}
 </style>
 </head>
 <body>
-<div id="dashboard">
-  <!-- Línea temporal -->
-  <div id="line-wrapper" class="section">
-    <h1>🌍 Earthquakes – Magnitude vs UTC Time <small>(1 s playback)</small></h1>
+<!-- ========== NAV ========================================== -->
+<nav id="nav">
+  <h1>🌍 Earthquake Dashboard<span>(1-s playback)</span></h1>
+  <div style="display:flex;align-items:center;gap:.7rem">
+    <label for="range" style="font-size:.8rem;color:var(--muted)">Rango:</label>
+    <select id="range">
+      <option value="24">24 h</option>
+      <option value="72">72 h</option>
+      <option value="168">7 días</option>
+    </select>
+    <button id="btn-hist">Histórico 📊</button>
+  </div>
+</nav>
+
+<!-- ========== GRID ========================================= -->
+<main id="grid">
+  <!-- ==== LINE CHART ====================================== -->
+  <section id="line-sec" class="section">
+    <h2>Magnitud vs Tiempo (UTC)</h2>
     <canvas id="line"></canvas>
-    <div id="stamp">—</div>
-  </div>
+    <small id="stamp" style="margin-top:.65rem;align-self:flex-end;color:var(--muted)">—</small>
+  </section>
 
-  <!-- Histograma -->
-  <div id="hist-wrapper" class="section">
-    <h2 style="margin-bottom:.8rem;font-size:1.1rem">Distribución de magnitudes (últimos eventos)</h2>
-    <canvas id="hist"></canvas>
-  </div>
+  <!-- ==== SIDE COLUMN ===================================== -->
+  <section class="section" style="gap:1.3rem">
+    <div style="flex:1;min-height:240px">
+      <h2>Distribución de magnitud</h2>
+      <canvas id="hist"></canvas>
+    </div>
+    <div>
+      <h2>Estadísticas</h2>
+      <ul id="kpi">
+        <li>Total eventos: <strong id="k-total">0</strong></li>
+        <li>Promedio magnitud: <strong id="k-avg">0.0</strong></li>
+        <li>Máx magnitud: <strong id="k-max">—</strong></li>
+      </ul>
+      <div id="feed" style="height:130px"></div>
+    </div>
+  </section>
+</main>
 
-  <!-- Estadísticas + detalles -->
-  <div id="stats" class="section">
-    <h2 style="margin-bottom:.8rem;font-size:1.1rem">Estadísticas</h2>
-    <ul>
-      <li>Total eventos: <strong id="st-total">0</strong></li>
-      <li>Promedio magnitud: <strong id="st-avg">0.0</strong></li>
-      <li>Máx magnitud: <strong id="st-max">—</strong></li>
-      <li>Último evento: <strong id="st-last">—</strong></li>
-    </ul>
-    <div id="details">Haz clic en la línea para ver detalles…</div>
-    <p style="font-size:.75rem;opacity:.6;margin-top:1rem">
-      Fuente: <a href="https://earthquake.usgs.gov/" target="_blank">USGS FDSN API</a>
-    </p>
+<!-- ========== MODAL (HISTÓRICO) ============================ -->
+<div id="modal">
+  <div class="card">
+    <button id="close">✕ Cerrar</button>
+    <div id="tabs">
+      <button data-tab="mean" class="active">Mag media / hora</button>
+      <button data-tab="count">Conteo / hora</button>
+    </div>
+    <canvas id="modal-chart"></canvas>
   </div>
 </div>
 
-<!-- ── LIBRERÍAS ─────────────────────────────────────────────── -->
+<!-- ========== LIBS ========================================= -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
 
 <script>
-/* ═════ CONFIG ════════════════════════════════════════════════ */
-const FETCH_MS   = 60_000;   // Refresco de feed
-const TICK_MS    = 1_000;    // Playback
-const MAX_POINTS = 300;      // Ventana visible
-const queue = [], seen = new Set();
-const bins  = Array(8).fill(0); // 0-1,1-2,…,7+
+/* ------------ CONFIG & HELPERS ---------------------------- */
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+let hoursBack = 24;                   // rango seleccionado
+const queue = [], seen = new Map();   // Map id -> event (para modal)
+const histBins = Array(8).fill(0);    // 0-1 … 7+
 
-/* DOM refs */
-const $stamp=document.getElementById('stamp'),
-      $total=document.getElementById('st-total'),
-      $avg  =document.getElementById('st-avg'),
-      $max  =document.getElementById('st-max'),
-      $last =document.getElementById('st-last'),
-      $det  =document.getElementById('details');
-
-/* Helpers */
-const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-function buildURL(){
-  const start=new Date(Date.now()-24*3600*1e3).toISOString();
-  return 'https://earthquake.usgs.gov/fdsnws/event/1/query' +
-         '?format=geojson&starttime='+start+'&minmagnitude=0&orderby=time&limit=20000';
-}
-
-/* ═════ INIT CHARTS ═══════════════════════════════════════════ */
-const lineCtx=document.getElementById('line').getContext('2d'),
-      histCtx=document.getElementById('hist').getContext('2d');
-
-const lineData={labels:[],datasets:[{
-  label:'Magnitude',
-  data:[],
+/* ------------ CHART DATA ---------------------------------- */
+const lineData = { labels: [], datasets:[{
+  label:'Magnitude', data:[],
   borderColor:css('--accent'),backgroundColor:'rgba(0,0,0,0)',
   pointRadius:3,pointBackgroundColor:css('--accent'),
   borderWidth:2,tension:.25
 }]};
-
 const histData={labels:['0-1','1-2','2-3','3-4','4-5','5-6','6-7','7+'],
-  datasets:[{label:'Count',data:bins,
-    backgroundColor:css('--accent'),borderWidth:0}]};
+  datasets:[{data:histBins,backgroundColor:css('--accent-light'),borderWidth:0}]};
 
-const lineChart=new Chart(lineCtx,{type:'line',data:lineData,
+/* ------------ LINE CHART ---------------------------------- */
+const lineChart = new Chart(document.getElementById('line'),{
+  type:'line',data:lineData,
   options:{
     scales:{
       x:{type:'timeseries',time:{displayFormats:{second:'HH:mm:ss'}},
-         grid:{color:css('--grid')},title:{display:true,text:'UTC'}},
-      y:{beginAtZero:true,grid:{color:css('--grid')},
-         title:{display:true,text:'Magnitude'}}
+         grid:{color:css('--grid')},ticks:{autoSkip:true,maxRotation:0,minRotation:0}},
+      y:{beginAtZero:true,grid:{color:css('--grid')},title:{display:true,text:'Mag'}}
     },
-    animation:{duration:0},
-    plugins:{legend:{display:false},tooltip:{
-      backgroundColor:'rgba(30,30,35,.92)',
-      borderColor:css('--accent'),borderWidth:1,
-      callbacks:{
-        title:c=>new Date(c[0].parsed.x).toUTCString(),
-        label:c=>`Mag ${c.parsed.y}`
-      }}},
-    responsive:true,maintainAspectRatio:false,
-    onClick:evt=>{
-      const p=lineChart.getElementsAtEventForMode(evt,'nearest',
-                  {intersect:true},true)[0];
-      if(!p) return;
-      const idx=p.index, meta=lineData.__meta[idx];
-      $det.innerHTML=
-        `<strong>${meta.place}</strong><br>
-         Magnitude: ${meta.mag}<br>
-         Depth: ${meta.depth.toFixed(1)} km<br>
-         Time: ${meta.time.toUTCString()}<br>
-         Coords: [${meta.lat.toFixed(2)}, ${meta.lon.toFixed(2)}]`;
-    }
-  }});
+    plugins:{
+      decimation:{enabled:true,algorithm:'lttb',samples:600}, // <-- evita “amontonado”
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'rgba(30,30,40,.92)',
+        borderColor:css('--accent'),borderWidth:1,
+        callbacks:{title:c=>new Date(c[0].parsed.x).toUTCString()}
+      }
+    },
+    animation:{duration:0},responsive:true,maintainAspectRatio:false
+  }
+});
 
-const histChart=new Chart(histCtx,{type:'bar',data:histData,
+/* ------------ HIST CHART ---------------------------------- */
+const histChart=new Chart(document.getElementById('hist'),{
+  type:'bar',data:histData,
   options:{
     scales:{
-      x:{grid:{display:false}},
-      y:{beginAtZero:true,grid:{color:css('--grid')}}
+      x:{grid:{display:false},ticks:{color:css('--muted')}},
+      y:{beginAtZero:true,grid:{color:css('--grid')},ticks:{color:css('--muted')}}
     },
     plugins:{legend:{display:false}},animation:{duration:0},
     responsive:true,maintainAspectRatio:false
-  }});
+  }
+});
 
-/* ═════ STATS TRACKERS ════════════════════════════════════════ */
-let total=0,sumMag=0,maxMag={mag:0,info:null};
+/* ------------ KPI ----------------------------------------- */
+let total=0,sum=0,maxMag=0;
+const $kTotal=document.getElementById('k-total'),
+      $kAvg  =document.getElementById('k-avg'),
+      $kMax  =document.getElementById('k-max'),
+      $feed  =document.getElementById('feed');
 
-function updateStats(ev){
-  total++; sumMag+=ev.mag;
-  if(ev.mag>maxMag.mag){maxMag={mag:ev.mag,info:ev};}
-  $total.textContent=total;
-  $avg.textContent=(sumMag/total).toFixed(2);
-  $max.textContent=maxMag.mag.toFixed(1);
-  $last.textContent=`M${ev.mag.toFixed(1)} – ${ev.place}`;
+function updateKPIs(ev){
+  total++; sum+=ev.mag; if(ev.mag>maxMag)maxMag=ev.mag;
+  $kTotal.textContent=total;
+  $kAvg.textContent=(sum/total).toFixed(2);
+  $kMax.textContent=maxMag.toFixed(1);
+  // live feed
+  const row=document.createElement('div');
+  row.textContent=`${ev.time.toUTCString().slice(17,25)} — M${ev.mag.toFixed(1)} · ${ev.place}`;
+  $feed.prepend(row); if($feed.children.length>9)$feed.lastChild.remove();
 }
 
-/* ═════ INGEST & DRAW ════════════════════════════════════════ */
-function enqueue(features){
-  features.sort((a,b)=>a.properties.time-b.properties.time).forEach(f=>{
-    if(seen.has(f.id)) return; seen.add(f.id);
-    queue.push({
-      id:f.id, time:new Date(f.properties.time), mag:f.properties.mag,
-      place:f.properties.place||'—',
-      depth:f.geometry.coordinates[2],
-      lon:f.geometry.coordinates[0], lat:f.geometry.coordinates[1]
-    });
-  });
+/* ------------ DATA ---------------------------------------- */
+function buildURL(){
+  const start = new Date(Date.now()-hoursBack*3600*1e3).toISOString();
+  return 'https://earthquake.usgs.gov/fdsnws/event/1/query'
+       + '?format=geojson&starttime='+start
+       + '&minmagnitude=0&orderby=time&limit=20000';
 }
-
 async function fetchFeed(){
   try{
-    const geo=await (await fetch(buildURL())).json();
-    enqueue(geo.features);
-    $stamp.textContent='Sync: '+
-      new Date().toLocaleTimeString('es-MX',{hour12:false});
-  }catch(e){console.error(e);}
+    const geo = await (await fetch(buildURL())).json();
+    geo.features.sort((a,b)=>a.properties.time-b.properties.time).forEach(f=>{
+      if(seen.has(f.id))return;
+      const ev={
+        id:f.id,mag:f.properties.mag,place:f.properties.place||'—',
+        time:new Date(f.properties.time),
+        depth:f.geometry.coordinates[2],
+        lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]
+      };
+      seen.set(f.id,ev); queue.push(ev);
+    });
+    document.getElementById('stamp').textContent=
+      'Sync '+new Date().toLocaleTimeString('es-MX',{hour12:false});
+  }catch(err){console.error(err);}
 }
+fetchFeed(); setInterval(fetchFeed,60_000);
 
-function binIndex(mag){
-  if(mag<1)return 0;
-  if(mag>=7)return 7;
-  return Math.floor(mag);
-}
-
-function drawNext(){
-  if(!queue.length) return;
+/* Playback (1 evento / s) */
+setInterval(()=>{
+  if(!queue.length)return;
   const ev=queue.shift();
-  /* Línea */
   lineData.labels.push(ev.time);
   lineData.datasets[0].data.push(ev.mag);
-  (lineData.__meta||=[]).push(ev);
-  if(lineData.labels.length>MAX_POINTS){
-    lineData.labels.shift();lineData.datasets[0].data.shift();lineData.__meta.shift();
+  if(lineData.labels.length>360){
+    lineData.labels.shift();lineData.datasets[0].data.shift();
   }
-  lineChart.update();
-  /* Histograma */
-  const idx=binIndex(ev.mag); bins[idx]++; histChart.update();
-  /* Stats */
-  updateStats(ev);
-}
+  lineChart.update('none');
+  // histogram
+  const idx=Math.min(7,ev.mag<1?0:Math.floor(ev.mag));
+  histBins[idx]++; histChart.update('none');
+  updateKPIs(ev);
+},1_000);
 
-/* ═════ START ═════════════════════════════════════════════════ */
-fetchFeed(); setInterval(fetchFeed, FETCH_MS);
-setInterval(drawNext , TICK_MS);
+/* ------------ RANGE SELECTOR ------------------------------ */
+document.getElementById('range').onchange=e=>{
+  hoursBack=+e.target.value;
+  // reset everything
+  queue.length=0; seen.clear();
+  lineData.labels.length=0; lineData.datasets[0].data.length=0; lineChart.update();
+  histBins.fill(0); histChart.update();
+  total=sum=maxMag=0;
+  [$kTotal,$kAvg,$kMax].forEach(el=>el.textContent='0');
+  $feed.innerHTML='';
+  fetchFeed();
+};
+
+/* ------------ MODAL HISTÓRICO ----------------------------- */
+let modalChart;
+const modal=document.getElementById('modal'), ctxModal=document.getElementById('modal-chart').getContext('2d');
+function openModal(tab='mean'){ modal.style.display='flex'; loadModal(tab); }
+function closeModal(){ modal.style.display='none'; }
+function loadModal(tab){
+  const buckets={}, now=Date.now(), start=now-hoursBack*3600*1e3;
+  // crear buckets por hora
+  seen.forEach(ev=>{
+    if(ev.time.getTime()<start)return;
+    const key=Math.floor(ev.time.getTime()/3.6e6)*3.6e6;
+    (buckets[key]=buckets[key]||{sum:0,cnt:0}).cnt++;
+    buckets[key].sum+=ev.mag;
+  });
+  const labels=Object.keys(buckets).sort().map(t=>new Date(+t));
+  const mean=labels.map(l=>(buckets[l.getTime()].sum/buckets[l.getTime()].cnt).toFixed(2));
+  const cnt =labels.map(l=>buckets[l.getTime()].cnt);
+
+  if(modalChart)modalChart.destroy();
+  modalChart=new Chart(ctxModal,{
+    type:'bar',
+    data:{labels,
+      datasets:[tab==='mean'
+        ?{label:'Mag media',data:mean,backgroundColor:css('--accent')}
+        :{label:'Conteo',data:cnt,backgroundColor:css('--accent-light')}]},
+    options:{
+      scales:{
+        x:{type:'timeseries',time:{unit:'hour'},grid:{color:css('--grid')},
+           ticks:{maxRotation:0,minRotation:0,color:css('--muted')}},
+        y:{beginAtZero:true,grid:{color:css('--grid')},ticks:{color:css('--muted')}}
+      },
+      plugins:{legend:{display:false},decimation:{enabled:true,algorithm:'lttb',samples:200}},
+      responsive:true,maintainAspectRatio:false
+    }
+  });
+  [...document.querySelectorAll('#tabs button')].forEach(b=>b.classList.remove('active'));
+  document.querySelector(`#tabs button[data-tab="${tab}"]`).classList.add('active');
+}
+document.getElementById('btn-hist').onclick=()=>openModal();
+document.getElementById('close').onclick=closeModal;
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>loadModal(b.dataset.tab));
+modal.addEventListener('click',e=>{ if(e.target===modal)closeModal(); });
 </script>
 </body>
 </html>
-
