@@ -164,7 +164,7 @@ function drawNext(){
   data.datasets[0].data.push(ev.mag);
   (data.__meta||=[]).push(ev);             // guardamos detalle paralelo
 
-  if(data.labels.length>MAX_POINTS){
+  if(data.labels.length>MAX_POINTS){   //Pasen CP
     data.labels.shift();
     data.datasets[0].data.shift();
     data.__meta.shift();
