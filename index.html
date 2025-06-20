@@ -1,440 +1,132 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A06 - Reporte de Visualizaciones con D3.js</title>
-    
-    <!-- Google Fonts para una tipografía limpia -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Real-Time Crypto-Style Chart</title>
 
-    <!-- Estilos CSS integrados para un diseño estético y minimalista -->
-    <style>
-        /* --- Estilos Generales --- */
-        body {
-            font-family: 'Lato', sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            line-height: 1.6;
-        }
+	<!-- ── AESTHETIC DARK-MODE STYLE ──────────────────────────── -->
+	<style>
+		:root {
+			--bg: #0e0e11;
+			--panel: #1a1a1f;
+			--text: #e6e6e9;
+			--accent: #9b5de5; /* purple line */
+			--grid: rgba(255,255,255,0.07);
+			--font: "Inter", system-ui, sans-serif;
+		}
+		@media (prefers-color-scheme: light) {
+			:root { --bg: #fafafa; --panel: #ffffff; --text: #1a1a1f; --grid: rgba(0,0,0,0.08); }
+		}
 
-        /* --- Contenedor Principal --- */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+		* { box-sizing: border-box; margin: 0; padding: 0; }
+		html,body { height: 100%; }
+		body {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: var(--bg);
+			color: var(--text);
+			font-family: var(--font);
+		}
 
-        /* --- Cabecera --- */
-        header {
-            text-align: center;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 20px;
-            margin-bottom: 40px;
-        }
+		#chart-wrapper {
+			width: 95%;
+			max-width: 1000px;
+			background: var(--panel);
+			padding: 1.5rem;
+			border-radius: 16px;
+			box-shadow: 0 0 40px rgba(0,0,0,.4);
+		}
 
-        header h1 {
-            color: #2c3e50;
-            font-size: 2.5em;
-            font-weight: 700;
-            margin: 0;
-        }
-
-        header p {
-            color: #7f8c8d;
-            font-size: 1.1em;
-        }
-
-        /* --- Cuadrícula para Visualizaciones --- */
-        .viz-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 30px;
-        }
-
-        /* --- Tarjeta de Visualización --- */
-        .viz-card {
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            padding: 25px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            overflow: hidden; /* Asegura que el contenido no se desborde */
-        }
-
-        .viz-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .viz-card h2 {
-            margin-top: 0;
-            color: #34495e;
-            border-bottom: 1px solid #ecf0f1;
-            padding-bottom: 10px;
-            font-size: 1.4em;
-        }
-
-        .viz-card p {
-            color: #555;
-            font-size: 0.95em;
-        }
-        
-        .viz-container {
-            width: 100%;
-            height: 350px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* --- Estilos específicos para SVG --- */
-        svg {
-            width: 100%;
-            height: 100%;
-        }
-
-        /* --- Tooltip para interactividad --- */
-        .tooltip {
-            position: absolute;
-            text-align: center;
-            padding: 8px;
-            font-size: 12px;
-            background: #2c3e50;
-            color: #fff;
-            border-radius: 4px;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        /* --- Pie de página --- */
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            padding: 20px;
-            font-size: 0.9em;
-            color: #95a5a6;
-        }
-
-        /* --- Diseño Responsivo --- */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            .viz-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+		canvas { width: 100% !important; height: 60vh !important; }
+	</style>
 </head>
 <body>
+	<div id="chart-wrapper">
+		<canvas id="rt-chart"></canvas>
+	</div>
 
-    <div class="container">
-        <header>
-            <h1>Actividad A06: Reporte de D3.js</h1>
-            <p>Un compendio de visualizaciones interactivas y dinámicas.</p>
-        </header>
+	<!-- ── CHART.JS CDN ───────────────────────────────────────── -->
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-        <main class="viz-grid">
-            
-            <!-- Visualización 1: Gráfico de Barras con Animación "Stagger" -->
-            <div class="viz-card">
-                <h2>1. Gráfico de Barras "Stagger"</h2>
-                <p>Esta visualización muestra un conjunto de barras. Haz clic en el gráfico para ver una transición animada y escalonada ("stagger") a un nuevo conjunto de datos.</p>
-                <div class="viz-container" id="stagger-container"></div>
-            </div>
+	<!-- ── REAL-TIME LOGIC ─────────────────────────────────────── -->
+	<script>
+	// ---------- Config helpers ----------
+	const POINTS_LIMIT = 120;          // keep last N points (~2 min @1s)
+	const INTERVAL_MS  = 1000;         // update every second
+	const START_PRICE  = 1000;         // initial dummy price
 
-            <!-- Visualización 2: Curva de Lissajous -->
-            <div class="viz-card">
-                <h2>2. Curva de Lissajous Animada</h2>
-                <p>Una curva de Lissajous que se dibuja a sí misma en tiempo real. La animación se detiene automáticamente después de 2 minutos.</p>
-                <div class="viz-container" id="lissajous-container"></div>
-            </div>
+	// Generate a nicely fluctuating price series using a random walk
+	let current = START_PRICE;
+	function nextPrice() {
+		const changePct = (Math.random() - 0.5) * 0.6;  // ±0.30 %
+		current = +(current * (1 + changePct / 100)).toFixed(2);
+		return current;
+	}
 
-            <!-- Visualización 3: Gráfico de Barras Simple (NUEVO) -->
-            <div class="viz-card">
-                <h2>3. Gráfico de Barras por Categoría</h2>
-                <p>Un gráfico de barras clásico que compara valores entre diferentes categorías. Pasa el cursor sobre una barra para ver su valor exacto.</p>
-                <div class="viz-container" id="bar-chart-container"></div>
-            </div>
-            
-            <!-- Visualización 4: Gráfico de Dona (NUEVO) -->
-            <div class="viz-card">
-                <h2>4. Gráfico de Dona</h2>
-                <p>Representa la proporción de diferentes partes de un todo. Es una alternativa moderna y estilizada al gráfico de pastel.</p>
-                <div class="viz-container" id="donut-chart-container"></div>
-            </div>
+	function nowLabel() {
+		return new Date().toLocaleTimeString('en-GB'); // HH:MM:SS
+	}
 
-            <!-- Visualización 5: Gráfico de Dispersión (NUEVO) -->
-            <div class="viz-card">
-                <h2>5. Gráfico de Dispersión</h2>
-                <p>Muestra la relación entre dos variables numéricas. Cada punto representa una observación en el conjunto de datos.</p>
-                <div class="viz-container" id="scatter-plot-container"></div>
-            </div>
+	// ---------- Chart.js setup ----------
+	const ctx = document.getElementById('rt-chart').getContext('2d');
+	const data = {
+		labels: [],
+		datasets: [{
+			label: 'Simulated Price',
+			data: [],
+			borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
+			backgroundColor: 'rgba(0,0,0,0)',
+			borderWidth: 2,
+			pointRadius: 0,
+			tension: 0.35
+		}]
+	};
 
-        </main>
-        
-        <footer>
-            <p>Reporte generado para la clase de Visualización de Datos. | GitHub Pages</p>
-        </footer>
-    </div>
-    
-    <!-- Tooltip Div (oculto por defecto) -->
-    <div class="tooltip"></div>
+	const chart = new Chart(ctx, {
+		type: 'line',
+		data,
+		options: {
+			scales: {
+				x: { grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--grid') } },
+				y: { grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--grid') } }
+			},
+			animation: { duration: 0 },
+			plugins: {
+				legend: { display: false },
+				tooltip: {
+					mode: 'index',
+					intersect: false,
+					backgroundColor: 'rgba(30,30,35,.9)',
+					borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
+					borderWidth: 1
+				}
+			},
+			responsive: true,
+			maintainAspectRatio: false
+		}
+	});
 
-    <!-- Librería D3.js (versión 7) -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    
-    <!-- Script con todas las visualizaciones -->
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        
-        // --- Visualización 1: Stagger Chart ---
-        function createStaggerChart() {
-            let ds1 = [2, 1, 3, 5, 7, 8, 9, 9, 9, 8, 7, 5, 3, 1, 2];
-            let ds2 = [8, 9, 8, 7, 5, 3, 2, 1, 2, 3, 5, 7, 8, 9, 8];
-            const n = ds1.length;
-            const mx = d3.max(d3.merge([ds1, ds2]));
+	// ---------- Real-time update loop ----------
+	function addPoint() {
+		data.labels.push(nowLabel());
+		data.datasets[0].data.push(nextPrice());
 
-            const container = d3.select("#stagger-container");
-            const width = container.node().getBoundingClientRect().width;
-            const height = container.node().getBoundingClientRect().height;
-            const margin = { top: 20, right: 20, bottom: 20, left: 20 };
-            
-            const svg = container.append("svg")
-                .attr("width", width)
-                .attr("height", height);
+		// keep series length bounded
+		if (data.labels.length > POINTS_LIMIT) {
+			data.labels.shift();
+			data.datasets[0].data.shift();
+		}
+		chart.update();
+	}
 
-            const scX = d3.scaleBand()
-                .domain(d3.range(n))
-                .range([margin.left, width - margin.right])
-                .padding(0.2);
+	// Seed initial data (30 s history)
+	Array.from({length:30}).forEach(addPoint);
 
-            const scY = d3.scaleLinear()
-                .domain([0, mx])
-                .range([height - margin.bottom, margin.top]);
-
-            svg.selectAll("rect")
-                .data(ds1)
-                .enter()
-                .append("rect")
-                .attr("fill", "#2980b9")
-                .attr("x", (d, i) => scX(i))
-                .attr("y", d => scY(d))
-                .attr("width", scX.bandwidth())
-                .attr("height", d => scY(0) - scY(d));
-
-            svg.on("click", function() {
-                [ds1, ds2] = [ds2, ds1]; // Swap datasets
-                svg.selectAll("rect")
-                    .data(ds1)
-                    .transition()
-                    .duration(1000)
-                    .delay((d, i) => 100 * i)
-                    .attr("y", d => scY(d))
-                    .attr("height", d => scY(0) - scY(d));
-            });
-        }
-
-        // --- Visualización 2: Lissajous Curve ---
-        function createLissajousCurve() {
-            const container = d3.select("#lissajous-container");
-            const width = container.node().getBoundingClientRect().width;
-            const height = container.node().getBoundingClientRect().height;
-            
-            const svg = container.append("svg")
-                .attr("width", width)
-                .attr("height", height);
-
-            const a = 1.9, b = 3.2;
-            const omega = 2 * Math.PI / 10000;
-            let prvX = width / 2 + (width / 3), prvY = height / 2;
-
-            const timer = d3.timer(function(t) {
-                const phi = omega * t;
-                const crrX = width / 2 + (width / 3) * Math.cos(a * phi);
-                const crrY = height / 2 + (height / 3) * Math.sin(b * phi);
-
-                svg.selectAll("line")
-                    .each(function() { this.bogus_opacity *= 0.99; })
-                    .attr("stroke-opacity", function() { return this.bogus_opacity; })
-                    .filter(function() { return this.bogus_opacity < 0.05; })
-                    .remove();
-
-                svg.append("line")
-                    .each(function() { this.bogus_opacity = 1.0; })
-                    .attr("x1", prvX).attr("y1", prvY)
-                    .attr("x2", crrX).attr("y2", crrY)
-                    .attr("stroke", "#16a085").attr("stroke-width", 2);
-
-                prvX = crrX;
-                prvY = crrY;
-
-                if (t > 120000) { timer.stop(); }
-            });
-        }
-
-        // --- Visualización 3: Bar Chart ---
-        function createBarChart() {
-            const data = [
-                { category: 'A', value: 23 }, { category: 'B', value: 35 },
-                { category: 'C', value: 18 }, { category: 'D', value: 45 },
-                { category: 'E', value: 29 }, { category: 'F', value: 38 }
-            ];
-
-            const container = d3.select("#bar-chart-container");
-            const width = container.node().getBoundingClientRect().width;
-            const height = container.node().getBoundingClientRect().height;
-            const margin = { top: 20, right: 20, bottom: 30, left: 40 };
-
-            const svg = container.append("svg")
-                .attr("width", width)
-                .attr("height", height);
-            
-            const x = d3.scaleBand()
-                .domain(data.map(d => d.category))
-                .range([margin.left, width - margin.right])
-                .padding(0.1);
-
-            const y = d3.scaleLinear()
-                .domain([0, d3.max(data, d => d.value)]).nice()
-                .range([height - margin.bottom, margin.top]);
-
-            const tooltip = d3.select(".tooltip");
-            
-            svg.append("g")
-                .selectAll("rect")
-                .data(data)
-                .join("rect")
-                    .attr("fill", "#e67e22")
-                    .attr("x", d => x(d.category))
-                    .attr("y", y(0))
-                    .attr("width", x.bandwidth())
-                    .attr("height", 0)
-                    .on("mouseover", (event, d) => {
-                        tooltip.transition().duration(200).style("opacity", .9);
-                        tooltip.html(`Categoría: ${d.category}<br/>Valor: ${d.value}`)
-                            .style("left", (event.pageX + 5) + "px")
-                            .style("top", (event.pageY - 28) + "px");
-                    })
-                    .on("mouseout", () => {
-                        tooltip.transition().duration(500).style("opacity", 0);
-                    })
-                    .transition()
-                    .duration(800)
-                    .attr("y", d => y(d.value))
-                    .attr("height", d => y(0) - y(d.value));
-
-            svg.append("g")
-                .attr("transform", `translate(0,${height - margin.bottom})`)
-                .call(d3.axisBottom(x));
-
-            svg.append("g")
-                .attr("transform", `translate(${margin.left},0)`)
-                .call(d3.axisLeft(y));
-        }
-        
-        // --- Visualización 4: Donut Chart ---
-        function createDonutChart() {
-            const data = [
-                { name: 'Producto A', value: 40 }, { name: 'Producto B', value: 25 },
-                { name: 'Producto C', value: 15 }, { name: 'Producto D', value: 20 }
-            ];
-
-            const container = d3.select("#donut-chart-container");
-            const width = container.node().getBoundingClientRect().width;
-            const height = container.node().getBoundingClientRect().height;
-            const radius = Math.min(width, height) / 2 - 20;
-
-            const svg = container.append("svg")
-                .attr("width", width)
-                .attr("height", height)
-              .append("g")
-                .attr("transform", `translate(${width / 2},${height / 2})`);
-
-            const color = d3.scaleOrdinal()
-                .domain(data.map(d => d.name))
-                .range(["#3498db", "#2ecc71", "#f1c40f", "#e74c3c"]);
-
-            const pie = d3.pie().value(d => d.value).sort(null);
-            const arc = d3.arc().innerRadius(radius * 0.5).outerRadius(radius);
-
-            svg.selectAll('path')
-                .data(pie(data))
-                .join('path')
-                .attr('fill', d => color(d.data.name))
-                .attr('d', arc)
-                .attr('stroke', 'white')
-                .style('stroke-width', '2px')
-                .transition()
-                .duration(1000)
-                .attrTween('d', function(d) {
-                    const i = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
-                    return function(t) { return arc(i(t)); };
-                });
-        }
-
-        // --- Visualización 5: Scatter Plot ---
-        function createScatterPlot() {
-            const data = Array.from({length: 50}, () => ({
-                x: Math.random() * 100,
-                y: Math.random() * 100
-            }));
-            
-            const container = d3.select("#scatter-plot-container");
-            const width = container.node().getBoundingClientRect().width;
-            const height = container.node().getBoundingClientRect().height;
-            const margin = {top: 20, right: 20, bottom: 30, left: 40};
-
-            const svg = container.append("svg")
-                .attr("width", width)
-                .attr("height", height);
-
-            const x = d3.scaleLinear()
-                .domain([0, 100]).nice()
-                .range([margin.left, width - margin.right]);
-
-            const y = d3.scaleLinear()
-                .domain([0, 100]).nice()
-                .range([height - margin.bottom, margin.top]);
-            
-            svg.append("g")
-                .selectAll("circle")
-                .data(data)
-                .join("circle")
-                    .attr("cx", d => x(d.x))
-                    .attr("cy", d => y(d.y))
-                    .attr("fill", "#8e44ad")
-                    .attr("opacity", 0.7)
-                    .attr("r", 0)
-                    .transition()
-                    .duration(500)
-                    .delay((d,i) => i * 10)
-                    .attr("r", 5);
-
-            svg.append("g")
-                .attr("transform", `translate(0,${height - margin.bottom})`)
-                .call(d3.axisBottom(x));
-
-            svg.append("g")
-                .attr("transform", `translate(${margin.left},0)`)
-                .call(d3.axisLeft(y));
-        }
-
-
-        // --- Llamar a todas las funciones para crear los gráficos ---
-        createStaggerChart();
-        createLissajousCurve();
-        createBarChart();
-        createDonutChart();
-        createScatterPlot();
-    });
-    </script>
-
+	// Start live updates
+	setInterval(addPoint, INTERVAL_MS);
+	</script>
 </body>
 </html>
+
