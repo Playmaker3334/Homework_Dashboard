@@ -1,132 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>Real-Time Crypto-Style Chart</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Realtime Global Earthquakes • USGS Feed</title>
 
-	<!-- ── AESTHETIC DARK-MODE STYLE ──────────────────────────── -->
-	<style>
-		:root {
-			--bg: #0e0e11;
-			--panel: #1a1a1f;
-			--text: #e6e6e9;
-			--accent: #9b5de5; /* purple line */
-			--grid: rgba(255,255,255,0.07);
-			--font: "Inter", system-ui, sans-serif;
-		}
-		@media (prefers-color-scheme: light) {
-			:root { --bg: #fafafa; --panel: #ffffff; --text: #1a1a1f; --grid: rgba(0,0,0,0.08); }
-		}
-
-		* { box-sizing: border-box; margin: 0; padding: 0; }
-		html,body { height: 100%; }
-		body {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			background: var(--bg);
-			color: var(--text);
-			font-family: var(--font);
-		}
-
-		#chart-wrapper {
-			width: 95%;
-			max-width: 1000px;
-			background: var(--panel);
-			padding: 1.5rem;
-			border-radius: 16px;
-			box-shadow: 0 0 40px rgba(0,0,0,.4);
-		}
-
-		canvas { width: 100% !important; height: 60vh !important; }
-	</style>
+<!-- ── DARK THEME ─────────────────────────────────────────────── -->
+<style>
+:root{
+  --bg:#0e0e11;--panel:#1a1a1f;--text:#e6e6e9;
+  --accent:#9b5de5;--grid:rgba(255,255,255,.07);--font:"Inter",system-ui,sans-serif
+}
+@media(prefers-color-scheme:light){
+  :root{--bg:#fafafa;--panel:#fff;--text:#1a1a1f;--grid:rgba(0,0,0,.08)}
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);color:var(--text);font-family:var(--font)
+}
+#chart-wrapper{
+  width:95%;max-width:1100px;background:var(--panel);
+  padding:1.8rem 2rem;border-radius:18px;
+  box-shadow:0 0 45px rgba(0,0,0,.45)
+}
+h1{font-size:1.35rem;font-weight:600;margin-bottom:.4rem}
+p#sub{font-size:.85rem;opacity:.7;margin-bottom:1rem}
+canvas{width:100%!important;height:65vh!important}
+#updated{font-size:.75rem;opacity:.6;margin-top:.8rem;text-align:right}
+</style>
 </head>
 <body>
-	<div id="chart-wrapper">
-		<canvas id="rt-chart"></canvas>
-	</div>
+<div id="chart-wrapper">
+  <h1>🌍 Global Earthquakes – Magnitude vs Time</h1>
+  <p id="sub">Datos de <a href="https://earthquake.usgs.gov/" target="_blank" style="color:var(--accent)">USGS</a> (se actualiza tan pronto haya un sismo nuevo)</p>
+  <canvas id="eq-chart"></canvas>
+  <div id="updated">Última actualización: —</div>
+</div>
 
-	<!-- ── CHART.JS CDN ───────────────────────────────────────── -->
-	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- ── LIBRERÍAS ─────────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
 
-	<!-- ── REAL-TIME LOGIC ─────────────────────────────────────── -->
-	<script>
-	// ---------- Config helpers ----------
-	const POINTS_LIMIT = 120;          // keep last N points (~2 min @1s)
-	const INTERVAL_MS  = 1000;         // update every second
-	const START_PRICE  = 1000;         // initial dummy price
+<!-- ── JS LÓGICA ──────────────────────────────────────────────── -->
+<script>
+const USGS_URL  = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson';
+const POLL_MS   = 1000;         // 1 segundo
+const MAX_PTS   = 120;          // máx. 120 eventos (~1 h)
+const seenIds   = new Set();
+const updatedEl = document.getElementById('updated');
 
-	// Generate a nicely fluctuating price series using a random walk
-	let current = START_PRICE;
-	function nextPrice() {
-		const changePct = (Math.random() - 0.5) * 0.6;  // ±0.30 %
-		current = +(current * (1 + changePct / 100)).toFixed(2);
-		return current;
-	}
+// Colores desde CSS custom properties
+const getVar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
-	function nowLabel() {
-		return new Date().toLocaleTimeString('en-GB'); // HH:MM:SS
-	}
+// Chart setup
+const ctx = document.getElementById('eq-chart').getContext('2d');
+const data = {
+  labels: [],
+  datasets:[{
+    label:'Magnitude',
+    data:[],
+    borderColor:getVar('--accent'),
+    backgroundColor:'rgba(0,0,0,0)',
+    pointRadius:3,
+    pointBackgroundColor:getVar('--accent'),
+    borderWidth:2,
+    tension:.25
+  }]
+};
 
-	// ---------- Chart.js setup ----------
-	const ctx = document.getElementById('rt-chart').getContext('2d');
-	const data = {
-		labels: [],
-		datasets: [{
-			label: 'Simulated Price',
-			data: [],
-			borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
-			backgroundColor: 'rgba(0,0,0,0)',
-			borderWidth: 2,
-			pointRadius: 0,
-			tension: 0.35
-		}]
-	};
+const chart = new Chart(ctx,{
+  type:'line',
+  data,
+  options:{
+    scales:{
+      x:{
+        type:'timeseries',
+        time:{displayFormats:{second:'HH:mm:ss'}},
+        grid:{color:getVar('--grid')},
+        title:{display:true,text:'UTC Time'}
+      },
+      y:{
+        beginAtZero:true,
+        grid:{color:getVar('--grid')},
+        title:{display:true,text:'Magnitude'}
+      }
+    },
+    animation:{duration:0},
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'rgba(30,30,35,.92)',
+        borderColor:getVar('--accent'),borderWidth:1,
+        callbacks:{
+          title: ctx => new Date(ctx[0].parsed.x).toUTCString(),
+          label: ctx => `Mag ${ctx.parsed.y}`
+        }
+      }
+    },
+    responsive:true,maintainAspectRatio:false
+  }
+});
 
-	const chart = new Chart(ctx, {
-		type: 'line',
-		data,
-		options: {
-			scales: {
-				x: { grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--grid') } },
-				y: { grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--grid') } }
-			},
-			animation: { duration: 0 },
-			plugins: {
-				legend: { display: false },
-				tooltip: {
-					mode: 'index',
-					intersect: false,
-					backgroundColor: 'rgba(30,30,35,.9)',
-					borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
-					borderWidth: 1
-				}
-			},
-			responsive: true,
-			maintainAspectRatio: false
-		}
-	});
+// Actualiza gráfico con un nuevo sismo
+function addPoint({id,time,mag}){
+  if(seenIds.has(id)) return;
+  seenIds.add(id);
 
-	// ---------- Real-time update loop ----------
-	function addPoint() {
-		data.labels.push(nowLabel());
-		data.datasets[0].data.push(nextPrice());
+  data.labels.push(time);
+  data.datasets[0].data.push(mag);
 
-		// keep series length bounded
-		if (data.labels.length > POINTS_LIMIT) {
-			data.labels.shift();
-			data.datasets[0].data.shift();
-		}
-		chart.update();
-	}
+  if(data.labels.length>MAX_PTS){
+    data.labels.shift();
+    data.datasets[0].data.shift();
+  }
+  chart.update();
+}
 
-	// Seed initial data (30 s history)
-	Array.from({length:30}).forEach(addPoint);
+// Fetch a USGS batch
+async function fetchQuakes(){
+  try{
+    const res  = await fetch(USGS_URL);
+    const geo  = await res.json();
+    geo.features.forEach(f=>{
+      addPoint({
+        id:  f.id,
+        time:new Date(f.properties.time),
+        mag: f.properties.mag
+      });
+    });
+    updatedEl.textContent = 'Última actualización: ' +
+        new Date().toLocaleTimeString('es-MX',{hour12:false});
+  }catch(err){console.error('Fetch error',err)}
+}
 
-	// Start live updates
-	setInterval(addPoint, INTERVAL_MS);
-	</script>
+// Arranque
+fetchQuakes();
+setInterval(fetchQuakes,POLL_MS);
+</script>
 </body>
 </html>
-
