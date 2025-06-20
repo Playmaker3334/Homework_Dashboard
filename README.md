@@ -3,7 +3,7 @@
 Visualización interactiva de sismos globales en tiempo real, utilizando datos de la API pública de USGS.  
 El dashboard muestra:
 
-- Gráfica de magnitud vs tiempo (1 s por evento)
+- Gráfica de magnitud vs tiempo 
 - Histograma de magnitudes
 - Panel de estadísticas en vivo
 - Modo histórico con agregados por hora
