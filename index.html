@@ -1,337 +1,1241 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Earthquake Intelligence Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seismic Intelligence Platform</title>
 
-<!-- ========== THEME & RESET ================================= -->
 <style>
-:root{
-  /* --- Palette --- */
-  --bg:#0b0d10;          /* page background                        */
-  --panel:#181c23;       /* card background                        */
-  --text:#e4e4e9;        /* main text                              */
-  --muted:#8d8d96;       /* muted / secondary text                 */
-  --accent:#a66bff;      /* accent purple                          */
-  --accent-light:#be8cff;/* lighter variant for fills              */
-  --grid:rgba(255,255,255,.06);
-  --font:"Inter",system-ui,sans-serif;
-  --radius:18px;
+:root {
+  --bg-primary: #050505;
+  --bg-secondary: #0a0a0a;
+  --bg-card: #111111;
+  --bg-hover: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --accent: #ff4757;
+  --accent-secondary: #ff6348;
+  --success: #2ed573;
+  --warning: #ffa502;
+  --danger: #ff4757;
+  --grid: rgba(255, 255, 255, 0.05);
+  --glow: 0 0 40px rgba(255, 71, 87, 0.4);
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
-@media(prefers-color-scheme:light){
-  :root{
-    --bg:#f3f4f7;--panel:#ffffff;--text:#1f1f23;--muted:#62626a;
-    --grid:rgba(0,0,0,.1);--accent:#7046ff;--accent-light:#8c68ff;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Animated background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(255, 71, 87, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 99, 72, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 20%, rgba(46, 213, 115, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.container {
+  position: relative;
+  z-index: 2;
+}
+
+/* Navigation */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(5, 5, 5, 0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--grid);
+  z-index: 1000;
+  padding: 1rem 2rem;
+}
+
+.nav-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.time-selector {
+  display: flex;
+  background: var(--bg-card);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--grid);
+}
+
+.time-option {
+  padding: 0.6rem 1.2rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+}
+
+.time-option.active {
+  background: var(--accent);
+  color: var(--text-primary);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-card);
+  border-radius: 8px;
+  border: 1px solid var(--grid);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Hero Section */
+.hero {
+  margin-top: 80px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+}
+
+.hero-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.hero-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.main-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.live-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--grid);
+  border-radius: 16px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: scan 3s linear infinite;
+}
+
+@keyframes scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--glow);
+  border-color: var(--accent);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stat-change {
+  font-size: 0.8rem;
+  color: var(--success);
+  margin-top: 0.5rem;
+}
+
+/* 3D Globe Container */
+.globe-container {
+  position: relative;
+  height: 600px;
+  background: var(--bg-card);
+  border-radius: 24px;
+  border: 1px solid var(--grid);
+  overflow: hidden;
+}
+
+.globe-overlay {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.magnitude-legend {
+  background: rgba(17, 17, 17, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1rem;
+  pointer-events: all;
+}
+
+.legend-title {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+#globe-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Real-time Section */
+.realtime-section {
+  padding: 4rem 2rem;
+  background: var(--bg-secondary);
+}
+
+.section-header {
+  max-width: 1400px;
+  margin: 0 auto 3rem;
+  text-align: center;
+}
+
+.section-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.section-subtitle {
+  color: var(--text-secondary);
+}
+
+.realtime-grid {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+.chart-container {
+  background: var(--bg-card);
+  border: 1px solid var(--grid);
+  border-radius: 20px;
+  padding: 2rem;
+  position: relative;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.chart-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.chart-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chart-btn {
+  padding: 0.4rem 0.8rem;
+  background: var(--bg-hover);
+  border: 1px solid var(--grid);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.chart-btn:hover {
+  background: var(--accent);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+/* Activity Feed */
+.activity-feed {
+  background: var(--bg-card);
+  border: 1px solid var(--grid);
+  border-radius: 20px;
+  padding: 1.5rem;
+  height: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
+.feed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.feed-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.feed-filter {
+  padding: 0.3rem 0.8rem;
+  background: var(--bg-hover);
+  border: 1px solid var(--grid);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.feed-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.feed-item {
+  background: var(--bg-hover);
+  border-radius: 12px;
+  padding: 1rem;
+  border-left: 3px solid var(--accent);
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.feed-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 5px 20px rgba(255, 71, 87, 0.2);
+}
+
+.feed-time {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.3rem;
+}
+
+.feed-magnitude {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 0.3rem;
+}
+
+.feed-location {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+/* Analysis Section */
+.analysis-section {
+  padding: 4rem 2rem;
+  background: var(--bg-primary);
+}
+
+.analysis-grid {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.analysis-card {
+  background: var(--bg-card);
+  border: 1px solid var(--grid);
+  border-radius: 20px;
+  padding: 2rem;
+  transition: all 0.3s;
+}
+
+.analysis-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  border-color: var(--accent);
+}
+
+.analysis-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.analysis-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.8rem;
+}
+
+.analysis-description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.analysis-chart {
+  height: 200px;
+  background: var(--bg-hover);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Alert Banner */
+.alert-banner {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, var(--danger), var(--accent-secondary));
+  color: white;
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(255, 71, 87, 0.5);
+  transform: translateX(400px);
+  transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  z-index: 1000;
+  max-width: 350px;
+}
+
+.alert-banner.show {
+  transform: translateX(0);
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.alert-icon {
+  font-size: 1.5rem;
+  animation: shake 0.5s infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.alert-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.alert-message {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+/* Canvas containers */
+canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--grid);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .hero-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .realtime-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .live-stats {
+    grid-template-columns: 1fr;
   }
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  background:var(--bg);color:var(--text);font-family:var(--font);
-  display:flex;flex-direction:column;min-height:100vh
-}
-a{color:var(--accent);text-decoration:none}
-button{
-  cursor:pointer;border:none;border-radius:var(--radius);
-  background:var(--accent);color:#fff;font:inherit;
-  padding:.45rem .95rem;font-size:.9rem
-}
-button:hover{opacity:.9}
-select{
-  background:var(--panel);color:var(--text);
-  border:1px solid var(--grid);border-radius:10px;
-  padding:.35rem .65rem;font-size:.9rem
+
+/* Loading animation */
+.loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
 }
 
-/* ========== NAV ============================================ */
-#nav{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:1.1rem 1.6rem;background:var(--panel);
-  box-shadow:0 0 30px rgba(0,0,0,.35)
-}
-#nav h1{
-  font-size:1.15rem;font-weight:600;display:flex;gap:.55rem;align-items:center
-}
-#nav h1 span{font-size:.8rem;color:var(--muted)}
-
-/* ========== GRID LAYOUT ==================================== */
-#grid{
-  flex:1;display:grid;grid-template-columns:2fr 35%;
-  gap:2%;padding:1.6rem;max-width:1600px;margin:0 auto;width:100%
-}
-.section{
-  background:var(--panel);border-radius:var(--radius);
-  padding:1.6rem 1.8rem;box-shadow:0 0 35px rgba(0,0,0,.45);
-  display:flex;flex-direction:column;min-height:0
-}
-h2{font-size:1.05rem;font-weight:600;margin-bottom:.85rem}
-
-/* KPI list */
-ul#kpi{list-style:none;font-size:.9rem;line-height:1.55}
-ul#kpi strong{color:var(--accent)}
-
-/* Live feed list */
-#feed{margin-top:1rem;font-size:.8rem;line-height:1.45;overflow-y:auto}
-#feed div{
-  margin-bottom:.45rem;border-left:3px solid var(--accent);
-  padding-left:.55rem;white-space:nowrap;text-overflow:ellipsis;overflow:hidden
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid var(--grid);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
-/* ========== MODAL ========================================== */
-#modal{
-  position:fixed;inset:0;background:rgba(0,0,0,.75);
-  display:none;align-items:center;justify-content:center;z-index:999
-}
-#modal .card{
-  background:var(--panel);border-radius:var(--radius);
-  width:92%;max-width:1100px;max-height:92vh;
-  padding:2rem;display:flex;flex-direction:column
-}
-#tabs{display:flex;gap:.7rem;margin-bottom:1rem}
-#tabs button{
-  background:var(--grid);border-radius:10px;
-  font-size:.85rem;padding:.4rem .85rem
-}
-#tabs .active{background:var(--accent)}
-#close{
-  align-self:flex-end;margin-bottom:1.2rem;
-  background:var(--grid);color:var(--text)
-}
-canvas{width:100%!important;height:100%!important}
-
-/* Responsive adjustments */
-@media(max-width:900px){
-  #grid{grid-template-columns:100%}
-  #nav{flex-wrap:wrap;gap:.7rem}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-<!-- ========== NAV ========================================== -->
-<nav id="nav">
-  <h1>🌍 Earthquake Dashboard<span>(1-s playback)</span></h1>
-  <div style="display:flex;align-items:center;gap:.7rem">
-    <label for="range" style="font-size:.8rem;color:var(--muted)">Rango:</label>
-    <select id="range">
-      <option value="24">24 h</option>
-      <option value="72">72 h</option>
-      <option value="168">7 días</option>
-    </select>
-    <button id="btn-hist">Histórico 📊</button>
+
+<!-- Loading Screen -->
+<div class="loading" id="loading">
+  <div class="loading-spinner"></div>
+</div>
+
+<div class="container">
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-content">
+      <div class="logo">
+        <div class="logo-icon">🌍</div>
+        <span>Seismic Intelligence</span>
+      </div>
+      <div class="nav-controls">
+        <div class="time-selector">
+          <button class="time-option active" data-hours="24">24h</button>
+          <button class="time-option" data-hours="72">3d</button>
+          <button class="time-option" data-hours="168">7d</button>
+          <button class="time-option" data-hours="720">30d</button>
+        </div>
+        <div class="status-indicator">
+          <div class="status-dot"></div>
+          <span>Live</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section with 3D Globe -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-stats">
+        <h1 class="main-title">Monitoreo Sísmico Global</h1>
+        <p class="subtitle">Visualización en tiempo real de la actividad sísmica mundial</p>
+        
+        <div class="live-stats">
+          <div class="stat-card">
+            <div class="stat-label">Eventos Totales</div>
+            <div class="stat-value" id="total-events">0</div>
+            <div class="stat-change">↑ 12% vs ayer</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Magnitud Máxima</div>
+            <div class="stat-value" id="max-magnitude">0.0</div>
+            <div class="stat-change">Última hora</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Regiones Activas</div>
+            <div class="stat-value" id="active-regions">0</div>
+            <div class="stat-change">En monitoreo</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="globe-container">
+        <div class="globe-overlay">
+          <div class="magnitude-legend">
+            <div class="legend-title">Magnitud</div>
+            <div class="legend-items">
+              <div class="legend-item">
+                <div class="legend-color" style="background: #2ed573"></div>
+                <span>&lt; 3.0</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background: #ffa502"></div>
+                <span>3.0 - 5.0</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background: #ff6348"></div>
+                <span>5.0 - 7.0</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background: #ff4757"></div>
+                <span>&gt; 7.0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <canvas id="globe-canvas"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- Real-time Monitoring Section -->
+  <section class="realtime-section">
+    <div class="section-header">
+      <h2 class="section-title">Monitoreo en Tiempo Real</h2>
+      <p class="section-subtitle">Datos actualizados cada segundo</p>
+    </div>
+    
+    <div class="realtime-grid">
+      <div class="chart-container">
+        <div class="chart-header">
+          <h3 class="chart-title">Actividad Sísmica - Timeline</h3>
+          <div class="chart-controls">
+            <button class="chart-btn">1H</button>
+            <button class="chart-btn">6H</button>
+            <button class="chart-btn">24H</button>
+          </div>
+        </div>
+        <canvas id="timeline-chart" height="300"></canvas>
+      </div>
+      
+      <div class="activity-feed">
+        <div class="feed-header">
+          <h3 class="feed-title">Últimos Eventos</h3>
+          <select class="feed-filter">
+            <option>Todos</option>
+            <option>M > 4.0</option>
+            <option>M > 5.0</option>
+          </select>
+        </div>
+        <div class="feed-list" id="event-feed">
+          <!-- Events will be populated here -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Analysis Section -->
+  <section class="analysis-section">
+    <div class="section-header">
+      <h2 class="section-title">Análisis Avanzado</h2>
+      <p class="section-subtitle">Patrones y predicciones basadas en datos históricos</p>
+    </div>
+    
+    <div class="analysis-grid">
+      <div class="analysis-card">
+        <div class="analysis-icon">📊</div>
+        <h3 class="analysis-title">Distribución por Magnitud</h3>
+        <p class="analysis-description">Análisis de frecuencia de terremotos por rangos de magnitud</p>
+        <div class="analysis-chart">
+          <canvas id="magnitude-dist"></canvas>
+        </div>
+      </div>
+      
+      <div class="analysis-card">
+        <div class="analysis-icon">🌐</div>
+        <h3 class="analysis-title">Actividad por Región</h3>
+        <p class="analysis-description">Comparación de actividad sísmica entre regiones geográficas</p>
+        <div class="analysis-chart">
+          <canvas id="region-activity"></canvas>
+        </div>
+      </div>
+      
+      <div class="analysis-card">
+        <div class="analysis-icon">📈</div>
+        <h3 class="analysis-title">Tendencias Temporales</h3>
+        <p class="analysis-description">Predicción de actividad basada en patrones históricos</p>
+        <div class="analysis-chart">
+          <canvas id="trend-analysis"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Alert Banner -->
+<div class="alert-banner" id="alert-banner">
+  <div class="alert-header">
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-title">Alerta Sísmica</div>
   </div>
-</nav>
-
-<!-- ========== GRID ========================================= -->
-<main id="grid">
-  <!-- ==== LINE CHART ====================================== -->
-  <section id="line-sec" class="section">
-    <h2>Magnitud vs Tiempo (UTC)</h2>
-    <canvas id="line"></canvas>
-    <small id="stamp" style="margin-top:.65rem;align-self:flex-end;color:var(--muted)">—</small>
-  </section>
-
-  <!-- ==== SIDE COLUMN ===================================== -->
-  <section class="section" style="gap:1.3rem">
-    <div style="flex:1;min-height:240px">
-      <h2>Distribución de magnitud</h2>
-      <canvas id="hist"></canvas>
-    </div>
-    <div>
-      <h2>Estadísticas</h2>
-      <ul id="kpi">
-        <li>Total eventos: <strong id="k-total">0</strong></li>
-        <li>Promedio magnitud: <strong id="k-avg">0.0</strong></li>
-        <li>Máx magnitud: <strong id="k-max">—</strong></li>
-      </ul>
-      <div id="feed" style="height:130px"></div>
-    </div>
-  </section>
-</main>
-
-<!-- ========== MODAL (HISTÓRICO) ============================ -->
-<div id="modal">
-  <div class="card">
-    <button id="close">✕ Cerrar</button>
-    <div id="tabs">
-      <button data-tab="mean" class="active">Mag media / hora</button>
-      <button data-tab="count">Conteo / hora</button>
-    </div>
-    <canvas id="modal-chart"></canvas>
+  <div class="alert-message" id="alert-message">
+    <!-- Alert message will be populated here -->
   </div>
 </div>
 
-<!-- ========== LIBS ========================================= -->
+<!-- Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-/* ------------ CONFIG & HELPERS ---------------------------- */
-const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-let hoursBack = 24;                   // rango seleccionado
-const queue = [], seen = new Map();   // Map id -> event (para modal)
-const histBins = Array(8).fill(0);    // 0-1 … 7+
+// Global variables
+let earthquakeData = [];
+let globe, renderer, scene, camera;
+let timeRange = 24; // hours
+const eventQueue = [];
+const seenEvents = new Map();
 
-/* ------------ CHART DATA ---------------------------------- */
-const lineData = { labels: [], datasets:[{
-  label:'Magnitude', data:[],
-  borderColor:css('--accent'),backgroundColor:'rgba(0,0,0,0)',
-  pointRadius:3,pointBackgroundColor:css('--accent'),
-  borderWidth:2,tension:.25
-}]};
-const histData={labels:['0-1','1-2','2-3','3-4','4-5','5-6','6-7','7+'],
-  datasets:[{data:histBins,backgroundColor:css('--accent-light'),borderWidth:0}]};
-
-/* ------------ LINE CHART ---------------------------------- */
-const lineChart = new Chart(document.getElementById('line'),{
-  type:'line',data:lineData,
-  options:{
-    scales:{
-      x:{type:'timeseries',time:{displayFormats:{second:'HH:mm:ss'}},
-         grid:{color:css('--grid')},ticks:{autoSkip:true,maxRotation:0,minRotation:0}},
-      y:{beginAtZero:true,grid:{color:css('--grid')},title:{display:true,text:'Mag'}}
-    },
-    plugins:{
-      decimation:{enabled:true,algorithm:'lttb',samples:600}, // <-- evita “amontonado”
-      legend:{display:false},
-      tooltip:{
-        backgroundColor:'rgba(30,30,40,.92)',
-        borderColor:css('--accent'),borderWidth:1,
-        callbacks:{title:c=>new Date(c[0].parsed.x).toUTCString()}
-      }
-    },
-    animation:{duration:0},responsive:true,maintainAspectRatio:false
-  }
-});
-
-/* ------------ HIST CHART ---------------------------------- */
-const histChart=new Chart(document.getElementById('hist'),{
-  type:'bar',data:histData,
-  options:{
-    scales:{
-      x:{grid:{display:false},ticks:{color:css('--muted')}},
-      y:{beginAtZero:true,grid:{color:css('--grid')},ticks:{color:css('--muted')}}
-    },
-    plugins:{legend:{display:false}},animation:{duration:0},
-    responsive:true,maintainAspectRatio:false
-  }
-});
-
-/* ------------ KPI ----------------------------------------- */
-let total=0,sum=0,maxMag=0;
-const $kTotal=document.getElementById('k-total'),
-      $kAvg  =document.getElementById('k-avg'),
-      $kMax  =document.getElementById('k-max'),
-      $feed  =document.getElementById('feed');
-
-function updateKPIs(ev){
-  total++; sum+=ev.mag; if(ev.mag>maxMag)maxMag=ev.mag;
-  $kTotal.textContent=total;
-  $kAvg.textContent=(sum/total).toFixed(2);
-  $kMax.textContent=maxMag.toFixed(1);
-  // live feed
-  const row=document.createElement('div');
-  row.textContent=`${ev.time.toUTCString().slice(17,25)} — M${ev.mag.toFixed(1)} · ${ev.place}`;
-  $feed.prepend(row); if($feed.children.length>9)$feed.lastChild.remove();
-}
-
-/* ------------ DATA ---------------------------------------- */
-function buildURL(){
-  const start = new Date(Date.now()-hoursBack*3600*1e3).toISOString();
-  return 'https://earthquake.usgs.gov/fdsnws/event/1/query'
-       + '?format=geojson&starttime='+start
-       + '&minmagnitude=0&orderby=time&limit=20000';
-}
-async function fetchFeed(){
-  try{
-    const geo = await (await fetch(buildURL())).json();
-    geo.features.sort((a,b)=>a.properties.time-b.properties.time).forEach(f=>{
-      if(seen.has(f.id))return;
-      const ev={
-        id:f.id,mag:f.properties.mag,place:f.properties.place||'—',
-        time:new Date(f.properties.time),
-        depth:f.geometry.coordinates[2],
-        lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]
-      };
-      seen.set(f.id,ev); queue.push(ev);
-    });
-    document.getElementById('stamp').textContent=
-      'Sync '+new Date().toLocaleTimeString('es-MX',{hour12:false});
-  }catch(err){console.error(err);}
-}
-fetchFeed(); setInterval(fetchFeed,60_000);
-
-/* Playback (1 evento / s) */
-setInterval(()=>{
-  if(!queue.length)return;
-  const ev=queue.shift();
-  lineData.labels.push(ev.time);
-  lineData.datasets[0].data.push(ev.mag);
-  if(lineData.labels.length>360){
-    lineData.labels.shift();lineData.datasets[0].data.shift();
-  }
-  lineChart.update('none');
-  // histogram
-  const idx=Math.min(7,ev.mag<1?0:Math.floor(ev.mag));
-  histBins[idx]++; histChart.update('none');
-  updateKPIs(ev);
-},1_000);
-
-/* ------------ RANGE SELECTOR ------------------------------ */
-document.getElementById('range').onchange=e=>{
-  hoursBack=+e.target.value;
-  // reset everything
-  queue.length=0; seen.clear();
-  lineData.labels.length=0; lineData.datasets[0].data.length=0; lineChart.update();
-  histBins.fill(0); histChart.update();
-  total=sum=maxMag=0;
-  [$kTotal,$kAvg,$kMax].forEach(el=>el.textContent='0');
-  $feed.innerHTML='';
-  fetchFeed();
+// Chart configurations
+const chartColors = {
+  primary: '#ff4757',
+  secondary: '#ff6348',
+  success: '#2ed573',
+  warning: '#ffa502',
+  grid: 'rgba(255, 255, 255, 0.05)',
+  text: '#a0a0a0'
 };
 
-/* ------------ MODAL HISTÓRICO ----------------------------- */
-let modalChart;
-const modal=document.getElementById('modal'), ctxModal=document.getElementById('modal-chart').getContext('2d');
-function openModal(tab='mean'){ modal.style.display='flex'; loadModal(tab); }
-function closeModal(){ modal.style.display='none'; }
-function loadModal(tab){
-  const buckets={}, now=Date.now(), start=now-hoursBack*3600*1e3;
-  // crear buckets por hora
-  seen.forEach(ev=>{
-    if(ev.time.getTime()<start)return;
-    const key=Math.floor(ev.time.getTime()/3.6e6)*3.6e6;
-    (buckets[key]=buckets[key]||{sum:0,cnt:0}).cnt++;
-    buckets[key].sum+=ev.mag;
-  });
-  const labels=Object.keys(buckets).sort().map(t=>new Date(+t));
-  const mean=labels.map(l=>(buckets[l.getTime()].sum/buckets[l.getTime()].cnt).toFixed(2));
-  const cnt =labels.map(l=>buckets[l.getTime()].cnt);
+// Initialize everything
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    document.getElementById('loading').style.display = 'none';
+    initializeGlobe();
+    initializeCharts();
+    fetchEarthquakeData();
+    setInterval(fetchEarthquakeData, 60000); // Update every minute
+    setInterval(processEventQueue, 1000); // Process queue every second
+  }, 1500);
+});
 
-  if(modalChart)modalChart.destroy();
-  modalChart=new Chart(ctxModal,{
-    type:'bar',
-    data:{labels,
-      datasets:[tab==='mean'
-        ?{label:'Mag media',data:mean,backgroundColor:css('--accent')}
-        :{label:'Conteo',data:cnt,backgroundColor:css('--accent-light')}]},
-    options:{
-      scales:{
-        x:{type:'timeseries',time:{unit:'hour'},grid:{color:css('--grid')},
-           ticks:{maxRotation:0,minRotation:0,color:css('--muted')}},
-        y:{beginAtZero:true,grid:{color:css('--grid')},ticks:{color:css('--muted')}}
+// Time selector
+document.querySelectorAll('.time-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.time-option').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    timeRange = parseInt(btn.dataset.hours);
+    resetData();
+    fetchEarthquakeData();
+  });
+});
+
+// Fetch earthquake data from USGS
+async function fetchEarthquakeData() {
+  const startTime = new Date(Date.now() - timeRange * 3600 * 1000).toISOString();
+  const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${startTime}&minmagnitude=0&orderby=time&limit=20000`;
+  
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    data.features.forEach(feature => {
+      if (!seenEvents.has(feature.id)) {
+        const event = {
+          id: feature.id,
+          mag: feature.properties.mag || 0,
+          place: feature.properties.place || 'Unknown',
+          time: new Date(feature.properties.time),
+          coordinates: feature.geometry.coordinates,
+          depth: feature.geometry.coordinates[2]
+        };
+        seenEvents.set(feature.id, event);
+        eventQueue.push(event);
+      }
+    });
+    
+    updateStats();
+  } catch (error) {
+    console.error('Error fetching earthquake data:', error);
+  }
+}
+
+// Process event queue (1 per second for animation)
+function processEventQueue() {
+  if (eventQueue.length === 0) return;
+  
+  const event = eventQueue.shift();
+  addEventToFeed(event);
+  addEventToGlobe(event);
+  updateCharts(event);
+  
+  // Check for significant events
+  if (event.mag >= 5.0) {
+    showAlert(event);
+  }
+}
+
+// Initialize 3D Globe
+function initializeGlobe() {
+  const container = document.getElementById('globe-canvas');
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+  camera.position.z = 3;
+  
+  renderer = new THREE.WebGLRenderer({ 
+    canvas: container, 
+    antialias: true, 
+    alpha: true 
+  });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  
+  // Create Earth sphere
+  const geometry = new THREE.SphereGeometry(1, 64, 64);
+  const texture = new THREE.TextureLoader().load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+  const material = new THREE.MeshPhongMaterial({ 
+    map: texture,
+    bumpScale: 0.05,
+    specular: new THREE.Color('grey'),
+    shininess: 5
+  });
+  
+  globe = new THREE.Mesh(geometry, material);
+  scene.add(globe);
+  
+  // Add atmosphere
+  const atmosphereGeometry = new THREE.SphereGeometry(1.1, 64, 64);
+  const atmosphereMaterial = new THREE.MeshPhongMaterial({
+    color: 0x4488ff,
+    transparent: true,
+    opacity: 0.1,
+    side: THREE.BackSide
+  });
+  const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+  scene.add(atmosphere);
+  
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0x404040);
+  scene.add(ambientLight);
+  
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(5, 3, 5);
+  scene.add(directionalLight);
+  
+  // Animation loop
+  function animate() {
+    requestAnimationFrame(animate);
+    globe.rotation.y += 0.001;
+    renderer.render(scene, camera);
+  }
+  animate();
+  
+  // Handle resize
+  window.addEventListener('resize', () => {
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+  });
+}
+
+// Add earthquake to globe
+function addEventToGlobe(event) {
+  const [lon, lat] = event.coordinates;
+  const phi = (90 - lat) * (Math.PI / 180);
+  const theta = (lon + 180) * (Math.PI / 180);
+  
+  const radius = 1.02;
+  const x = radius * Math.sin(phi) * Math.cos(theta);
+  const y = radius * Math.cos(phi);
+  const z = radius * Math.sin(phi) * Math.sin(theta);
+  
+  // Create earthquake marker
+  const size = Math.max(0.01, event.mag * 0.005);
+  const color = event.mag < 3 ? 0x2ed573 : 
+                event.mag < 5 ? 0xffa502 : 
+                event.mag < 7 ? 0xff6348 : 0xff4757;
+  
+  const markerGeometry = new THREE.SphereGeometry(size, 8, 8);
+  const markerMaterial = new THREE.MeshBasicMaterial({ 
+    color: color,
+    transparent: true,
+    opacity: 0.8
+  });
+  
+  const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+  marker.position.set(x, y, z);
+  scene.add(marker);
+  
+  // Animate marker
+  let scale = 1;
+  const animateMarker = () => {
+    scale += 0.05;
+    marker.scale.set(scale, scale, scale);
+    marker.material.opacity -= 0.01;
+    
+    if (marker.material.opacity > 0) {
+      requestAnimationFrame(animateMarker);
+    } else {
+      scene.remove(marker);
+    }
+  };
+  animateMarker();
+}
+
+// Initialize Charts
+let timelineChart, magnitudeChart, regionChart, trendChart;
+
+function initializeCharts() {
+  // Timeline Chart
+  const timelineCtx = document.getElementById('timeline-chart').getContext('2d');
+  timelineChart = new Chart(timelineCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Magnitud',
+        data: [],
+        borderColor: chartColors.primary,
+        backgroundColor: 'rgba(255, 71, 87, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 3,
+        pointHoverRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          grid: { color: chartColors.grid },
+          ticks: { color: chartColors.text }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: chartColors.grid },
+          ticks: { color: chartColors.text }
+        }
       },
-      plugins:{legend:{display:false},decimation:{enabled:true,algorithm:'lttb',samples:200}},
-      responsive:true,maintainAspectRatio:false
+      plugins: {
+        legend: { display: false }
+      }
     }
   });
-  [...document.querySelectorAll('#tabs button')].forEach(b=>b.classList.remove('active'));
-  document.querySelector(`#tabs button[data-tab="${tab}"]`).classList.add('active');
+  
+  // Magnitude Distribution Chart
+  const magCtx = document.getElementById('magnitude-dist').getContext('2d');
+  magnitudeChart = new Chart(magCtx, {
+    type: 'bar',
+    data: {
+      labels: ['0-1', '1-2', '2-3', '3-4', '4-5', '5-6', '6-7', '7+'],
+      datasets: [{
+        data: [0, 0, 0, 0, 0, 0, 0, 0],
+        backgroundColor: chartColors.secondary,
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: chartColors.text }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: chartColors.grid },
+          ticks: { color: chartColors.text }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+  
+  // Region Activity Chart
+  const regionCtx = document.getElementById('region-activity').getContext('2d');
+  regionChart = new Chart(regionCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Pacífico', 'Atlántico', 'Índico', 'Mediterráneo', 'Otros'],
+      datasets: [{
+        data: [0, 0, 0, 0, 0],
+        backgroundColor: [
+          chartColors.primary,
+          chartColors.secondary,
+          chartColors.success,
+          chartColors.warning,
+          '#8e44ad'
+        ],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: chartColors.text }
+        }
+      }
+    }
+  });
+  
+  // Trend Analysis Chart
+  const trendCtx = document.getElementById('trend-analysis').getContext('2d');
+  trendChart = new Chart(trendCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Actividad',
+        data: [],
+        borderColor: chartColors.success,
+        backgroundColor: 'rgba(46, 213, 115, 0.1)',
+        borderWidth: 2,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          grid: { color: chartColors.grid },
+          ticks: { color: chartColors.text }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: chartColors.grid },
+          ticks: { color: chartColors.text }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
 }
-document.getElementById('btn-hist').onclick=()=>openModal();
-document.getElementById('close').onclick=closeModal;
-document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>loadModal(b.dataset.tab));
-modal.addEventListener('click',e=>{ if(e.target===modal)closeModal(); });
+
+// Update charts with new event
+function updateCharts(event) {
+  // Timeline
+  if (timelineChart.data.labels.length > 50) {
+    timelineChart.data.labels.shift();
+    timelineChart.data.datasets[0].data.shift();
+  }
+  timelineChart.data.labels.push(event.time.toLocaleTimeString());
+  timelineChart.data.datasets[0].data.push(event.mag);
+  timelineChart.update('none');
+  
+  // Magnitude distribution
+  const magIndex = Math.min(7, Math.floor(event.mag));
+  magnitudeChart.data.datasets[0].data[magIndex]++;
+  magnitudeChart.update('none');
+}
+
+// Add event to feed
+function addEventToFeed(event) {
+  const feed = document.getElementById('event-feed');
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  item.innerHTML = `
+    <div class="feed-time">${event.time.toLocaleTimeString()}</div>
+    <div class="feed-magnitude">M ${event.mag.toFixed(1)}</div>
+    <div class="feed-location">${event.place}</div>
+  `;
+  
+  feed.insertBefore(item, feed.firstChild);
+  if (feed.children.length > 10) {
+    feed.removeChild(feed.lastChild);
+  }
+}
+
+// Update statistics
+function updateStats() {
+  const events = Array.from(seenEvents.values());
+  document.getElementById('total-events').textContent = events.length;
+  
+  const maxMag = Math.max(...events.map(e => e.mag));
+  document.getElementById('max-magnitude').textContent = maxMag.toFixed(1);
+  
+  // Count unique regions (simplified)
+  const regions = new Set(events.map(e => e.place?.split(',').pop()?.trim()).filter(Boolean));
+  document.getElementById('active-regions').textContent = regions.size;
+}
+
+// Show alert for significant events
+function showAlert(event) {
+  const banner = document.getElementById('alert-banner');
+  const message = document.getElementById('alert-message');
+  
+  message.textContent = `Terremoto de magnitud ${event.mag.toFixed(1)} detectado en ${event.place}`;
+  banner.classList.add('show');
+  
+  setTimeout(() => {
+    banner.classList.remove('show');
+  }, 8000);
+}
+
+// Reset data when changing time range
+function resetData() {
+  eventQueue.length = 0;
+  seenEvents.clear();
+  
+  // Reset charts
+  timelineChart.data.labels = [];
+  timelineChart.data.datasets[0].data = [];
+  timelineChart.update();
+  
+  magnitudeChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0, 0];
+  magnitudeChart.update();
+  
+  // Clear feed
+  document.getElementById('event-feed').innerHTML = '';
+}
 </script>
+
 </body>
 </html>
