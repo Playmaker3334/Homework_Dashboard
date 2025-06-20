@@ -23,7 +23,7 @@ El dashboard muestra:
 
 ### 📡 Fuente de datos
 
-> [USGS Earthquake Feed (FDSN GeoJSON API)](https://earthquake.usgs.gov/fdsnws/event/1/)
+> https://playmaker3334.github.io/Homework_Dashboard/
 
 ---
 
