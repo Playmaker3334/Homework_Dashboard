@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seismic Intelligence Platform Done by Krishna, Joaquin, Isaias, Damaris, Ana , Valeria </title>
+<title>Seismic Intelligence Platform</title>
 
 <style>
 :root {
@@ -694,6 +694,174 @@ canvas {
   }
 }
 
+/* About Button */
+.about-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--grid);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+}
+
+.about-btn:hover {
+  background: var(--accent);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.about-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+}
+
+.modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--grid);
+  border-radius: 20px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  transform: scale(0.9);
+  transition: transform 0.3s;
+}
+
+.modal-overlay.show .modal-content {
+  transform: scale(1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem 2rem 1rem;
+  border-bottom: 1px solid var(--grid);
+}
+
+.modal-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.modal-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+.info-section {
+  margin-bottom: 2rem;
+}
+
+.info-section:last-child {
+  margin-bottom: 0;
+}
+
+.info-section h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent-light);
+  margin-bottom: 0.8rem;
+}
+
+.info-section p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+.info-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.info-section li {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.info-section li::before {
+  content: '•';
+  color: var(--accent);
+  position: absolute;
+  left: 0;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.team-member {
+  background: var(--bg-hover);
+  border: 1px solid var(--grid);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.team-member:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
 /* Loading animation */
 .loading {
   position: fixed;
@@ -758,6 +926,14 @@ canvas {
           <div class="status-dot"></div>
           <span>Live</span>
         </div>
+        <button class="about-btn" id="about-btn">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M9 9h5a3 3 0 1 1 0 6h-5"/>
+    <path d="M12 17.02V22M12 2v4.98"/>
+  </svg>
+  Acerca de
+</button>
       </div>
     </div>
   </nav>
@@ -934,6 +1110,61 @@ canvas {
   </div>
   <div class="alert-message" id="alert-message">
     <!-- Alert message will be populated here -->
+  </div>
+</div>
+
+<!-- About Modal -->
+<div class="modal-overlay" id="about-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Informe Sísmico</h2>
+      <button class="modal-close" id="modal-close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="info-section">
+        <h3>Objetivo</h3>
+        <p>Plataforma de monitoreo sísmico en tiempo real que visualiza terremotos, analiza tendencias y alerta sobre eventos significativos.</p>
+      </div>
+      
+      <div class="info-section">
+        <h3>Datos</h3>
+        <p><strong>Fuente:</strong> USGS Earthquake API (datos en vivo).</p>
+        <p><strong>Muestra:</strong> Terremotos ≥ 1.0M, con profundidad y ubicación.</p>
+      </div>
+      
+      <div class="info-section">
+        <h3>Hallazgos Clave</h3>
+        <ul>
+          <li><strong>Zonas más activas:</strong> Anillo de Fuego del Pacífico.</li>
+          <li><strong>Magnitud común:</strong> 2.0–4.0M (eventos pequeños frecuentes).</li>
+          <li><strong>Grandes terremotos (≥6.0M):</strong> Poco frecuentes pero peligrosos.</li>
+          <li><strong>Alertas automáticas:</strong> Se activan para sismos ≥5.0M.</li>
+        </ul>
+      </div>
+      
+      <div class="info-section">
+        <h3>Tecnología</h3>
+        <p>D3.js (mapa interactivo) + Chart.js (gráficos).</p>
+        <p>Actualización automática cada 1 minuto.</p>
+      </div>
+      
+      <div class="info-section">
+        <h3>Integrantes del equipo</h3>
+        <div class="team-grid">
+          <div class="team-member">Krishna Sandoval</div>
+          <div class="team-member">Joaquín Murguía</div>
+          <div class="team-member">Isaías López</div>
+          <div class="team-member">Damaris Pech</div>
+          <div class="team-member">Ana Paula Ramírez</div>
+          <div class="team-member">Valeria Paredes</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1389,6 +1620,28 @@ window.addEventListener('resize', () => {
       d3.select(this).attr('cx', coords[0]).attr('cy', coords[1]);
     }
   });
+});
+
+// About Modal functionality
+document.getElementById('about-btn').addEventListener('click', () => {
+  document.getElementById('about-modal').classList.add('show');
+});
+
+document.getElementById('modal-close').addEventListener('click', () => {
+  document.getElementById('about-modal').classList.remove('show');
+});
+
+document.getElementById('about-modal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('about-modal')) {
+    document.getElementById('about-modal').classList.remove('show');
+  }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.getElementById('about-modal').classList.remove('show');
+  }
 });
 </script>
 
